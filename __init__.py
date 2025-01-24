@@ -26,6 +26,8 @@ import re
 import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "simpleaudio"))
+from .simpleaudio_for_linux.choice_simpleaudio import load_simpleaudio
+load_simpleaudio()
 from . import simpleaudio as sa
 
 config = mw.addonManager.getConfig(__name__)

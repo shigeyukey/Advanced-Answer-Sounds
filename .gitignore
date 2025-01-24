@@ -2,3 +2,4 @@ __pycache__
 /meta.json
 *.zip
 *.ankiaddon
+/simpleaudio_patched.libs
