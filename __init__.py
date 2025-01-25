@@ -612,6 +612,33 @@ class ConfigDialog(QDialog):
 
         self.init_ui()
 
+        from .shige_tools.button_manager import mini_button
+        from aqt.utils import openLink
+        ADDON_PACKAGE = mw.addonManager.addonFromModule(__name__)
+
+        button1 = QtWidgets.QPushButton("👍️RateThis", self)
+        mini_button(button1)
+        button1.clicked.connect(lambda: openLink(f"https://ankiweb.net/shared/review/{ADDON_PACKAGE}"))
+
+        button2 = QtWidgets.QPushButton("💖Patreon", self)
+        mini_button(button2)
+        button2.clicked.connect(lambda: openLink("http://patreon.com/Shigeyuki"))
+
+        button3 = QtWidgets.QPushButton("🚨Report", self)
+        mini_button(button3)
+        button3.clicked.connect(lambda: openLink("https://shigeyukey.github.io/shige-addons-wiki/contact.html"))
+
+        layoutWidget = QtWidgets.QWidget(self)
+        layoutWidget.setGeometry(QtCore.QRect(0, 540, 400, 50))
+
+        hboxLayout = QtWidgets.QHBoxLayout(layoutWidget)
+        hboxLayout.addWidget(button1)
+        hboxLayout.addWidget(button2)
+        hboxLayout.addWidget(button3)
+        hboxLayout.addStretch()
+
+
+
     def init_ui(self):
         self.form.checkBoxAgain.setChecked(config["again"]['enable'])
         self.form.checkBoxHard.setChecked(config["hard"]['enable'])
@@ -844,6 +871,6 @@ def EffectConfig() -> None:
     dlg = ConfigDialog()
     dlg.exec()
 
-action = QAction("Advanced Answer Sounds Setting ...", mw)
+action = QAction("🎧Advanced Answer Sounds (Fixed by Shigeඞ)", mw)
 qconnect(action.triggered, EffectConfig)
 mw.form.menuTools.addAction(action)

@@ -242,7 +242,7 @@ class Ui_Dialog(object):
 
     def retranslateUi(self, Dialog):
         _translate = QtCore.QCoreApplication.translate
-        Dialog.setWindowTitle(_translate("Dialog", "Advanced Answer Sounds Setting"))
+        Dialog.setWindowTitle(_translate("Dialog", "Advanced Answer Sounds Setting (Fixed by Shigeඞ)"))
         self.checkBoxAgain.setText(_translate("Dialog", "again"))
         self.checkBoxHard.setText(_translate("Dialog", "hard"))
         self.checkBoxGood.setText(_translate("Dialog", "good"))
