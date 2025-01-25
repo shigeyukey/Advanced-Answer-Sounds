@@ -315,7 +315,7 @@ def reviewer_will_answer_card(ease_tuple: Tuple[bool, int], reviewer, card: Card
     # for ease_type
     mytype = easytypes[ease_tuple[1]]
     myname = easynames[mytype]
-    if int(config[myname]["enable"]) == 1:
+    if int(config[myname]["enable"]) == 1 and sound_objs[myname]:
         play_easy = random.choice(sound_objs[myname]).play(config[myname]['volume'])
 
     return ease_tuple
@@ -337,7 +337,7 @@ def grad_wait_ease_play():
 def reviewer_did_answer_card(self, card, ease):
     global origin_queue,play_grad,delay_time
     # for graduate: not invoke play() wait for ease judge
-    if int(config["graduate"]["enable"]) == 1 and card.queue == 2 and (origin_queue == 0 or origin_queue == 1):
+    if int(config["graduate"]["enable"]) == 1 and card.queue == 2 and (origin_queue == 0 or origin_queue == 1) and sound_objs["graduate"]:
         delay_time = 0.0 
         play_grad = random.choice(sound_objs["graduate"])
         if float(config["graduate"]["wait_ease"]) > 0.0:
@@ -365,7 +365,7 @@ def reviewer_will_play_opt_sounds(bc):
         pass
 
     global play_opt
-    if opt_name != "" and int(config[opt_name]["enable"]) == 1 :
+    if opt_name != "" and int(config[opt_name]["enable"]) == 1 and sound_objs[opt_name]:
         play_opt = random.choice(sound_objs[opt_name]).play(config[opt_name]['volume'])
 
 def reviewer_will_play_question_sounds(c, sounds):
@@ -423,7 +423,7 @@ def state_did_change(new_state, old_state):
         if mw.col.sched.get_queued_cards().cards:
             menuPlayer.play()
         else:
-            if int(config[opt_name]["enable"]) == 1 :
+            if int(config[opt_name]["enable"]) == 1 and sound_objs[opt_name]:
                 menuPlayer.playObj = random.choice(sound_objs[opt_name])
                 menuPlayer.objName = opt_name
             else:
@@ -463,7 +463,8 @@ def type_error_beep(text):
         return
 
     global play_cloz
-    play_cloz = random.choice(sound_objs[obj_name]).play(config[obj_name]['volume'])
+    if sound_objs[obj_name]:
+        play_cloz = random.choice(sound_objs[obj_name]).play(config[obj_name]['volume'])
 
     return
 
