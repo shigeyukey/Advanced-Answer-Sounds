@@ -606,7 +606,7 @@ class ConfigDialog(QDialog):
         else:
             self.form.comboBoxAmbientRMode.setCurrentIndex(0)
         self.form.comboBoxAmbientRMode.currentIndexChanged.connect(lambda idx: self.index_change_mode(idx, "ambient review"))
-        
+
         self.form.pushButtonPathMenu.clicked.connect(self.on_select_menu_path)
         self.form.pushButtonPathReview.clicked.connect(self.on_select_review_path)
 
@@ -616,27 +616,38 @@ class ConfigDialog(QDialog):
         from aqt.utils import openLink
         ADDON_PACKAGE = mw.addonManager.addonFromModule(__name__)
 
-        button1 = QtWidgets.QPushButton("👍️RateThis", self)
-        mini_button(button1)
-        button1.clicked.connect(lambda: openLink(f"https://ankiweb.net/shared/review/{ADDON_PACKAGE}"))
+        userFilesButton = QtWidgets.QPushButton("📂UserFiles", self)
+        mini_button(userFilesButton)
+        user_files = os.path.join(os.path.dirname(__file__), "user_files")
+        userFilesButton.clicked.connect(lambda: os.startfile(user_files))
 
-        button2 = QtWidgets.QPushButton("💖Patreon", self)
-        mini_button(button2)
-        button2.clicked.connect(lambda: openLink("http://patreon.com/Shigeyuki"))
+        rateThisButton = QtWidgets.QPushButton("👍️RateThis", self)
+        mini_button(rateThisButton)
+        rateThisButton.clicked.connect(lambda: openLink(f"https://ankiweb.net/shared/review/{ADDON_PACKAGE}"))
 
-        button3 = QtWidgets.QPushButton("🚨Report", self)
-        mini_button(button3)
-        button3.clicked.connect(lambda: openLink("https://shigeyukey.github.io/shige-addons-wiki/contact.html"))
+        patreonButton = QtWidgets.QPushButton("💖Patreon", self)
+        mini_button(patreonButton)
+        patreonButton.clicked.connect(lambda: openLink("http://patreon.com/Shigeyuki"))
+
+        wikiButton = QtWidgets.QPushButton("📖Wiki", self)
+        mini_button(wikiButton)
+        wikiButton.clicked.connect(lambda: openLink("https://shigeyukey.github.io/shige-addons-wiki/advanced-answer-sound.html"))
+
+        reportButton = QtWidgets.QPushButton("🚨Report", self)
+        mini_button(reportButton)
+        reportButton.clicked.connect(lambda: openLink("https://shigeyukey.github.io/shige-addons-wiki/advanced-answer-sound.html#report"))
 
         layoutWidget = QtWidgets.QWidget(self)
         layoutWidget.setGeometry(QtCore.QRect(0, 540, 400, 50))
 
         hboxLayout = QtWidgets.QHBoxLayout(layoutWidget)
-        hboxLayout.addWidget(button1)
-        hboxLayout.addWidget(button2)
-        hboxLayout.addWidget(button3)
-        hboxLayout.addStretch()
+        hboxLayout.addWidget(userFilesButton)
+        hboxLayout.addWidget(wikiButton)
+        hboxLayout.addWidget(reportButton)
+        hboxLayout.addWidget(rateThisButton)
+        hboxLayout.addWidget(patreonButton)
 
+        hboxLayout.addStretch()
 
 
     def init_ui(self):
