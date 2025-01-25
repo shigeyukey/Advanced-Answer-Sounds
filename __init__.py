@@ -67,7 +67,7 @@ for i in range(0,len(sound_name)):
 
 extra_ambient = []
 # if config["ambient menu"]['paths']:
-for path in config["ambient menu"]['paths']:   
+for path in config["ambient menu"]['paths']:
     extra_ambient.append(("ambient menu",path))
 # if config["ambient review"]['path']:
 for path in config["ambient review"]['paths']:
