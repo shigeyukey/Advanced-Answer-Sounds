@@ -874,3 +874,4 @@ def EffectConfig() -> None:
 action = QAction("🎧Advanced Answer Sounds (Fixed by Shigeඞ)", mw)
 qconnect(action.triggered, EffectConfig)
 mw.form.menuTools.addAction(action)
+mw.addonManager.setConfigAction(__name__, EffectConfig)
