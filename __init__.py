@@ -30,6 +30,9 @@ from .simpleaudio_for_linux.choice_simpleaudio import load_simpleaudio
 load_simpleaudio()
 from . import simpleaudio as sa
 
+from .shige_config.popup_config import set_gui_hook_change_log
+set_gui_hook_change_log()
+
 config = mw.addonManager.getConfig(__name__)
 
 addon_path = os.path.dirname(__file__)
@@ -403,7 +406,7 @@ gui_hooks.av_player_will_play_tags.append(av_player_will_play_tags)
 # after sounds insert need to remove for replay
 def remove_delayed_sounds(sounds):
     for i in range(len(sounds)-1, -1, -1):
-        if sounds[i].filename.find(user_files) != -1:
+        if hasattr(sounds[i], 'filename') and sounds[i].filename.find(user_files) != -1:
             sounds.pop(i)
 
 gui_hooks.reviewer_did_show_question.append(lambda c: remove_delayed_sounds(c.question_av_tags()))
@@ -650,7 +653,10 @@ class ConfigDialog(QDialog):
         hboxLayout.addStretch()
 
 
+
+
     def init_ui(self):
+
         self.form.checkBoxAgain.setChecked(config["again"]['enable'])
         self.form.checkBoxHard.setChecked(config["hard"]['enable'])
         self.form.checkBoxGood.setChecked(config["good"]['enable'])
@@ -684,9 +690,9 @@ class ConfigDialog(QDialog):
         self.form.spinDelayA.setValue(float(config["delay answer"]['time']))
 
         self.form.checkBoxFadeInQ.setChecked(config["fadein question"]['enable'])
-        self.form.spinFadeInQ.setValue(int(config["fadein question"]['time']))
+        self.form.spinFadeInQ.setValue(float(config["fadein question"]['time']))
         self.form.checkBoxFadeInA.setChecked(config["fadein answer"]['enable'])
-        self.form.spinFadeInA.setValue(int(config["fadein answer"]['time']))
+        self.form.spinFadeInA.setValue(float(config["fadein answer"]['time']))
 
         self.form.checkBoxAmbientM.setChecked(config["ambient menu"]['enable'])
         self.form.sliderAmbientMVol.setValue(config["ambient menu"]['volume'])
@@ -775,13 +781,13 @@ class ConfigDialog(QDialog):
         config["fadein question"]['enable'] = True if Qt.CheckState(value) == Qt.CheckState.Checked else False
         mw.addonManager.writeConfig(__name__,config)
     def spin_fadein_q(self):
-        config["fadein question"]['time'] = self.form.spinFadeInQ.value()
+        config["fadein question"]['time'] = round(self.form.spinFadeInQ.value(), 1)
         mw.addonManager.writeConfig(__name__,config)
     def on_checkbox_changed_fadein_a(self, value):
         config["fadein answer"]['enable'] = True if Qt.CheckState(value) == Qt.CheckState.Checked else False
         mw.addonManager.writeConfig(__name__,config)
     def spin_fadein_a(self):
-        config["fadein answer"]['time'] = self.form.spinFadeInA.value()
+        config["fadein answer"]['time'] = round(self.form.spinFadeInA.value(), 1)
         mw.addonManager.writeConfig(__name__,config)
 
     def on_checkbox_changed_AM(self, value):
