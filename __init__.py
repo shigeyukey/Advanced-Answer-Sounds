@@ -7,6 +7,7 @@ from aqt import mw
 from aqt.qt import QAction,QFileInfo,QObject,QFileDialog
 from aqt.qt import QUrl
 from aqt.qt import qtmajor,QTimer
+from aqt.utils import openFolder
 
 from aqt.sound import *
 from anki.sound import SoundOrVideoTag
@@ -622,7 +623,8 @@ class ConfigDialog(QDialog):
         userFilesButton = QtWidgets.QPushButton("📂UserFiles", self)
         mini_button(userFilesButton)
         user_files = os.path.join(os.path.dirname(__file__), "user_files")
-        userFilesButton.clicked.connect(lambda: os.startfile(user_files))
+        # userFilesButton.clicked.connect(lambda: os.startfile(user_files))
+        userFilesButton.clicked.connect(lambda: openFolder(user_files))
 
         rateThisButton = QtWidgets.QPushButton("👍️RateThis", self)
         mini_button(rateThisButton)

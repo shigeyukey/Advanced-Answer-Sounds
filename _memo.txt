@@ -1,3 +1,10 @@
+
+
+
+ 2025-02-14 ﾌｧｰｽﾄﾘﾘｰｽ
+ 2025-03-09 user_filesが開かないﾊﾞｸﾞを修正
+
+
 Anki 25.01 (7ba143ba)  (ao)
 Python 3.9.18 Qt 6.8.1 PyQt 6.8.0
 Platform: Windows-10-10.0.22631
