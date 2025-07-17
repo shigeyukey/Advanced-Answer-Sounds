@@ -76,7 +76,7 @@ class ZoomConfig(QDialog):
             button3.clicked.connect(self.open_rate_this_Link)
             button3.setFixedWidth(120)
 
-        button4 = QPushButton("💖Patreon")
+        button4 = QPushButton("💖Become a Patron")
         button4.clicked.connect(self.open_patreon_Link)
         button4.setFixedWidth(120)
 

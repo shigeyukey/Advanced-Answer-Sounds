@@ -1,6 +1,3 @@
-# Copyright (C) Shigeyuki <http://patreon.com/Shigeyuki>
-# License: GNU AGPL version 3 or later <http://www.gnu.org/licenses/agpl.html>｣
-
 import os
 import sys
 import shutil
@@ -36,3 +33,21 @@ def load_simpleaudio():
                 destination_path = os.path.join(addon_path, item)
                 if os.path.isdir(source_path):
                     shutil.copytree(source_path, destination_path, dirs_exist_ok=True)
+
+    elif os_type == "Darwin":
+
+        arch = platform.machine()
+        if arch == "arm64":
+            simpleaudio = "simpleaudio_patched-1.0.5-cp39-cp39-macosx_11_0_arm64"
+        elif arch == "x86_64":
+            simpleaudio = "simpleaudio_patched-1.0.5-cp39-cp39-macosx_10_9_x86_64"
+
+        addon_path = os.path.dirname(os.path.dirname(__file__))
+        simpleaudio_for_mac = os.path.join(addon_path, "simpleaudio_for_mac", simpleaudio)
+
+        for item in os.listdir(simpleaudio_for_mac):
+            if "_simpleaudio.cpython-39-darwin.so" in item:
+                source_path = os.path.join(simpleaudio_for_mac, item)
+                destination_path = os.path.join(addon_path, "simpleaudio", item)
+                if os.path.isfile(source_path):
+                    shutil.copy2(source_path, destination_path)

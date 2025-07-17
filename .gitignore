@@ -3,3 +3,4 @@ __pycache__
 *.zip
 *.ankiaddon
 /simpleaudio_patched.libs
+*.whl

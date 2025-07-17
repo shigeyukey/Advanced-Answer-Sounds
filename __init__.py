@@ -1,12 +1,32 @@
+# Copyright (C) Kyle Mills 2019-2020 <https://github.com/khonkhortisan>
+# Copyright (C) Unknown? 2021-2024 <https://ankiweb.net/shared/info/1167194350>
+# Copyright (C) Shigeyuki 2025 <http://patreon.com/Shigeyuki>
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
 import os
+import sys
 import time
+import random
 from typing import Tuple
 
-from aqt import qt,gui_hooks
+from aqt import qt, gui_hooks
 from aqt import mw
 from aqt.qt import QAction,QFileInfo,QObject,QFileDialog
 from aqt.qt import QUrl
-from aqt.qt import qtmajor,QTimer
+from aqt.qt import qtmajor, QTimer
 from aqt.utils import openFolder
 
 from aqt.sound import *
@@ -22,28 +42,42 @@ else:
     from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 
 
-import random
-import re
-import sys
+### support Anki25.04+ (byShigeඞ) ###
+import platform
+os_type = platform.system()
+# Linux Python 3.13 is already supported, so use it as is.
+if os_type == "Linux":
+    sys.path.append(os.path.join(os.path.dirname(__file__), "simpleaudio"))
+    from .simpleaudio_for_linux.choice_simpleaudio import load_simpleaudio
+    load_simpleaudio()
+    from . import simpleaudio
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "simpleaudio"))
-from .simpleaudio_for_linux.choice_simpleaudio import load_simpleaudio
-load_simpleaudio()
-from . import simpleaudio as sa
+# Windows and Mac need to add support for Python 3.9-Python 3.13.
+else:
+    from .wheel_Installer_v2 import load_simpleaudio_mac_or_win
+    load_simpleaudio_mac_or_win()
+    import simpleaudio
+
+    # Maybe WaveObject has been customized by the original author (volume).
+    # The new wheel does not have this function(error occur), so the patch overwrites the WaveObject.
+    # Linux uses the modified file directly for now so this patch is not needed.
+    from .simpleaudio_patch import custom_shiny
+    simpleaudio.WaveObject = custom_shiny.WaveObject
+######################################
 
 from .shige_config.popup_config import set_gui_hook_change_log
 set_gui_hook_change_log()
 
-config = mw.addonManager.getConfig(__name__)
 
 addon_path = os.path.dirname(__file__)
 user_files = os.path.join(addon_path, "user_files")
 sound_name = ["again","hard","good","easy",
-              "graduate","correct","error","suspended","user buried","sched buried",
-              "finish deck","delay question","delay answer",
-              "fadein question","fadein answer",
-              "ambient review","ambient menu",
-              ]
+                "graduate","correct","error","suspended","user buried","sched buried",
+                "finish deck","delay question","delay answer",
+                "fadein question","fadein answer",
+                "ambient review","ambient menu",
+                ]
+
 #create sounds to wave_objs and store in sound_name list
 sound_objs = {}
 for i in range(0,len(sound_name)):
@@ -66,16 +100,20 @@ for i in range(0,len(sound_name)):
             if sound_name[i] in ["delay question","delay answer"]:
                 waves.append(os.path.join(sound_dir, fileName))
             else:
-                waves.append(sa.WaveObject.from_wave_file(os.path.join(sound_dir, fileName)))
+                waves.append(simpleaudio.WaveObject.from_wave_file(os.path.join(sound_dir, fileName)))
     sound_objs[sound_name[i]] = waves
 
 extra_ambient = []
 # if config["ambient menu"]['paths']:
-for path in config["ambient menu"]['paths']:
-    extra_ambient.append(("ambient menu",path))
-# if config["ambient review"]['path']:
-for path in config["ambient review"]['paths']:
-    extra_ambient.append(("ambient review",path))
+def set_extra_ambient():
+    global extra_ambient
+    config = mw.addonManager.getConfig(__name__)
+    for path in config["ambient menu"]['paths']:
+        extra_ambient.append(("ambient menu", path))
+    # if config["ambient review"]['path']:
+    for path in config["ambient review"]['paths']:
+        extra_ambient.append(("ambient review", path))
+set_extra_ambient()
 
 def extent_extra_ambient(extras):
     for extra in extras:
@@ -93,7 +131,7 @@ def extent_extra_ambient(extras):
         # sound_objs[extra[0]].extend(waves)
         for wave in waves:
             if wave not in sound_objs[extra[0]]:
-                sound_objs[extra[0]].append(wave) 
+                sound_objs[extra[0]].append(wave)
 
 extent_extra_ambient(extra_ambient)
 
@@ -102,6 +140,7 @@ class LoopSound(QObject):
         super().__init__(mw)
         self.ambientName = name
         self.loopNames = sound_objs[name]
+        config = mw.addonManager.getConfig(__name__)
         self.volume = int(config[self.ambientName]["volume"])
 
         self.usedNames = []
@@ -113,7 +152,7 @@ class LoopSound(QObject):
             self.player.setAudioOutput(self.audio_output)
 
         self.player.mediaStatusChanged.connect(self.statusChanged)
-    
+
     def update(self):
         self.randNames = random.sample(self.loopNames,len(self.loopNames))
 
@@ -131,15 +170,16 @@ class LoopSound(QObject):
         if len(self.randNames)>1:
             self.usedNames.append(self.randNames[0])
             return self.randNames.pop(0)
-        
+
         if self.usedNames:
             self.randNames.extend(random.sample(self.usedNames,len(self.usedNames)))
             self.randNames.insert(random.randrange(2,len(self.usedNames)+1),self.randNames[0])
             self.usedNames.clear()
-        
+
         return self.randNames.pop(0)
-    
+
     def statusChanged(self, status):
+        config = mw.addonManager.getConfig(__name__)
         if qtmajor > 5:
             if status == QMediaPlayer.MediaStatus.EndOfMedia:
                 if config[self.ambientName]['mode'] == 'single':
@@ -164,6 +204,7 @@ class LoopSound(QObject):
                     mw.progress.single_shot(0, lambda: self.player.play())
 
     def play(self):
+        config = mw.addonManager.getConfig(__name__)
         if len(self.loopNames) == 0:
             return
         if qtmajor > 5:
@@ -172,7 +213,7 @@ class LoopSound(QObject):
                 return
             if playState == QMediaPlayer.PlaybackState.PausedState:
                 return self.player.play()
-                
+
             self.setVolume(self.volume)
             if config[self.ambientName]['mode'] == 'sequence':
                 self.player.setSource(QUrl.fromLocalFile(self.getNext()))
@@ -184,13 +225,13 @@ class LoopSound(QObject):
                 return
             if playState == QMediaPlayer.PausedState:
                 return self.player.play()
-                
+
             self.setVolume(self.volume)
             if config[self.ambientName]['mode'] == 'sequence':
                 self.player.setMedia(QMediaContent(QUrl.fromLocalFile(self.getNext())))
             else:
                 self.player.setMedia(QMediaContent(QUrl.fromLocalFile(self.getRandom())))
-    
+
     def pause(self):
         self.player.pause()
 
@@ -199,6 +240,7 @@ class LoopSound(QObject):
         time.sleep(0.1)
 
     def setVolume(self,volume):
+        config = mw.addonManager.getConfig(__name__)
         if volume < 0:
             volume = 0
         elif volume > 100:
@@ -210,7 +252,7 @@ class LoopSound(QObject):
             self.player.setVolume(self.volume)
 
         config[self.ambientName]["volume"] = self.volume
-        mw.addonManager.writeConfig(__name__,config)
+        mw.addonManager.writeConfig(__name__, config)
 
 reviewLooper = LoopSound("ambient review")
 menuLooper = LoopSound("ambient menu")
@@ -226,7 +268,8 @@ class PlayObjWaiter(QObject):
         self.playTimer.timeout.connect(self.waitedCheck)
 
     def waitedCheck(self):
-        if self.playObj and isinstance(self.playObj,sa.WaveObject):
+        config = mw.addonManager.getConfig(__name__)
+        if self.playObj and isinstance(self.playObj,simpleaudio.WaveObject):
             self.playObj = self.playObj.play(config[self.objName]['volume'])
             return
         if self.playObj and self.playObj.is_playing():
@@ -236,11 +279,12 @@ class PlayObjWaiter(QObject):
         if config['ambient menu']['enable'] == 1:
             self.looper.play()
         else:
-            self.looper.pause() 
+            self.looper.pause()
 
         self.playTimer.stop()
 
     def play(self):
+        config = mw.addonManager.getConfig(__name__)
         self.playTimer.stop()
         if self.playObj:
             return self.playTimer.start(self.msec)
@@ -260,8 +304,8 @@ menuPlayer.looper = menuLooper
 last_card = None
 
 play_cloz = None
-play_easy = None    
-play_grad = None 
+play_easy = None
+play_grad = None
 play_opt = None
 
 # create fade in for play sounds to delay question and answer avtag
@@ -279,6 +323,7 @@ def card_will_show(txt: str, card: Card, kind: str) -> str:
 gui_hooks.card_will_show.append(card_will_show)
 
 def card_will_fadein(kind: str):
+    config = mw.addonManager.getConfig(__name__)
     span = "0"
     if int(config[kind]["enable"]) == 1:
         span = config[kind]['time']
@@ -303,19 +348,20 @@ def reviewer_will_init_answer_buttons(buttons_tuple: Tuple[Tuple[int, str], ...]
     else:
         easytypes = [0,1,2,3,4,5,6,7,8,9] #for safe
 
-    return buttons_tuple	
+    return buttons_tuple
 gui_hooks.reviewer_will_init_answer_buttons.append(reviewer_will_init_answer_buttons)
 
 origin_queue = None
 def reviewer_did_show_answer(c):
     global origin_queue
     origin_queue = c.queue
-    
+
 gui_hooks.reviewer_did_show_answer.append(reviewer_did_show_answer)
 
 # play for ease and graduate:
 def reviewer_will_answer_card(ease_tuple: Tuple[bool, int], reviewer, card: Card) -> Tuple[bool, int]:
     global play_easy
+    config = mw.addonManager.getConfig(__name__)
     # for ease_type
     mytype = easytypes[ease_tuple[1]]
     myname = easynames[mytype]
@@ -331,16 +377,20 @@ gui_hooks.reviewer_will_answer_card.append(reviewer_will_answer_card)
 delay_time = 0.0
 def grad_wait_ease_play():
     global delay_time, play_easy,play_grad
+    config = mw.addonManager.getConfig(__name__)
+
     if delay_time <= float(config["graduate"]["wait_ease"]) and play_easy and play_easy.is_playing():
         mw.progress.single_shot(100, lambda: grad_wait_ease_play())
         delay_time += 0.1
         return
-    if play_grad and isinstance(play_grad,sa.WaveObject):
+    if play_grad and isinstance(play_grad,simpleaudio.WaveObject):
         play_grad = play_grad.play(config["graduate"]['volume'])
 
 def reviewer_did_answer_card(self, card, ease):
     global origin_queue,play_grad,delay_time
     # for graduate: not invoke play() wait for ease judge
+    config = mw.addonManager.getConfig(__name__)
+
     if int(config["graduate"]["enable"]) == 1 and card.queue == 2 and (origin_queue == 0 or origin_queue == 1) and sound_objs["graduate"]:
         delay_time = 0.0 
         play_grad = random.choice(sound_objs["graduate"])
@@ -351,7 +401,6 @@ def reviewer_did_answer_card(self, card, ease):
 
     return
 
-    
 gui_hooks.reviewer_did_answer_card.append(reviewer_did_answer_card)
 
 # play for opts: suspend buriy
@@ -363,24 +412,25 @@ def reviewer_will_play_opt_sounds(bc):
             opt_name = 'suspended'
         elif bc.queue == -2:
             opt_name = 'user buried'
-        elif bc.queue == -3: 
+        elif bc.queue == -3:
             opt_name = 'sched buried'
     except:
         pass
 
     global play_opt
+    config = mw.addonManager.getConfig(__name__)
     if opt_name != "" and int(config[opt_name]["enable"]) == 1 and sound_objs[opt_name]:
         play_opt = random.choice(sound_objs[opt_name]).play(config[opt_name]['volume'])
 
 def reviewer_will_play_question_sounds(c, sounds):
-    global last_card    
+    global last_card
     if last_card:
         reviewer_will_play_opt_sounds(last_card)
     last_card = c
 
 
 def reviewer_will_end():
-    global last_card    
+    global last_card
     if last_card:
         reviewer_will_play_opt_sounds(last_card)
     last_card = None
@@ -394,6 +444,7 @@ def av_player_will_play_tags(sounds, state, self):
         return
     delay_name = "delay question" if state == "question" else "delay answer"
 
+    config = mw.addonManager.getConfig(__name__)
     if int(config[delay_name]["enable"]) == 0:
         return
 
@@ -414,6 +465,7 @@ gui_hooks.reviewer_did_show_question.append(lambda c: remove_delayed_sounds(c.qu
 gui_hooks.reviewer_did_show_answer.append(lambda c: remove_delayed_sounds(c.answer_av_tags()))
 
 def state_did_change(new_state, old_state):
+    config = mw.addonManager.getConfig(__name__)
     if new_state == "review":
         menuPlayer.pause()
         if config['ambient review']['enable'] == 1:
@@ -447,6 +499,8 @@ def reviewer_did_show_question(card):
     if card and card != mw.reviewer.card:
         return
 
+    config = mw.addonManager.getConfig(__name__)
+
     if config['ambient review']['enable'] == 1:
         if config['ambient review']['continue'] == 0 and mw.reviewer.state == "question":
             reviewLooper.stop()
@@ -456,6 +510,7 @@ gui_hooks.reviewer_did_show_question.append(reviewer_did_show_question)
 
 # for type Cloze
 def type_error_beep(text):
+    config = mw.addonManager.getConfig(__name__)
     if int(config["error"]["enable"]) != 1:
         return
 
@@ -514,9 +569,10 @@ class FolderList(qt.QDialog):
 
     def add_folder(self):
         folder_path = QFileDialog.getExistingDirectory(self, 'select dir')
+        config = mw.addonManager.getConfig(__name__)
         if folder_path:
             self.folder_list.addItem(folder_path)
-            extent_extra_ambient([(self.player.ambientName,folder_path)])
+            extent_extra_ambient([(self.player.ambientName, folder_path)])
 
             config[self.player.ambientName]['paths'].append(folder_path)
             mw.addonManager.writeConfig(__name__,config)
@@ -524,12 +580,13 @@ class FolderList(qt.QDialog):
             self.player.update()
 
     def remove_folder(self):
+        config = mw.addonManager.getConfig(__name__)
         selected_item = self.folder_list.currentItem()
         if selected_item:
             self.folder_list.takeItem(self.folder_list.row(selected_item))
 
             config[self.player.ambientName]['paths'].remove(selected_item.text())
-            mw.addonManager.writeConfig(__name__,config)
+            mw.addonManager.writeConfig(__name__, config)
 
 
 class ConfigDialog(QDialog):
@@ -542,6 +599,8 @@ class ConfigDialog(QDialog):
             from . import sound_qt5
             self.form = sound_qt5.Ui_Dialog()
         self.form.setupUi(self)
+
+        config = mw.addonManager.getConfig(__name__)
 
         self.form.checkBoxAgain.stateChanged.connect(self.on_checkbox_changed_again)
         self.form.checkBoxHard.stateChanged.connect(self.on_checkbox_changed_hard)
@@ -616,7 +675,7 @@ class ConfigDialog(QDialog):
 
         self.init_ui()
 
-        from .shige_tools.button_manager import mini_button
+        from .shige_config.button_manager import mini_button
         from aqt.utils import openLink
         ADDON_PACKAGE = mw.addonManager.addonFromModule(__name__)
 
@@ -630,7 +689,7 @@ class ConfigDialog(QDialog):
         mini_button(rateThisButton)
         rateThisButton.clicked.connect(lambda: openLink(f"https://ankiweb.net/shared/review/{ADDON_PACKAGE}"))
 
-        patreonButton = QtWidgets.QPushButton("💖Patreon", self)
+        patreonButton = QtWidgets.QPushButton("💖Become a Patron", self)
         mini_button(patreonButton)
         patreonButton.clicked.connect(lambda: openLink("http://patreon.com/Shigeyuki"))
 
@@ -658,6 +717,7 @@ class ConfigDialog(QDialog):
 
 
     def init_ui(self):
+        config = mw.addonManager.getConfig(__name__)
 
         self.form.checkBoxAgain.setChecked(config["again"]['enable'])
         self.form.checkBoxHard.setChecked(config["hard"]['enable'])
@@ -705,6 +765,8 @@ class ConfigDialog(QDialog):
 
     def on_select_menu_path(self):  
         oDlg = FolderList(menuLooper)
+        config = mw.addonManager.getConfig(__name__)
+
         oDlg.setWindowTitle('Ambient menu music extra folders')
         for path in config["ambient menu"]['paths']:
             oDlg.folder_list.addItem(path)
@@ -723,76 +785,114 @@ class ConfigDialog(QDialog):
     def on_select_review_path(self):
         oDlg = FolderList(reviewLooper)
         oDlg.setWindowTitle('Ambient review music extra folders')
+        config = mw.addonManager.getConfig(__name__)
+
         for path in config["ambient review"]['paths']:
             oDlg.folder_list.addItem(path)
         oDlg.exec()
 
     def on_checkbox_changed_again(self, value):
+        config = mw.addonManager.getConfig(__name__)
         config["again"]['enable'] = True if Qt.CheckState(value) == Qt.CheckState.Checked else False
         mw.addonManager.writeConfig(__name__,config)
+
     def on_checkbox_changed_hard(self, value):
+        config = mw.addonManager.getConfig(__name__)
         config["hard"]['enable'] = True if Qt.CheckState(value) == Qt.CheckState.Checked else False
         mw.addonManager.writeConfig(__name__,config)
+
     def on_checkbox_changed_good(self, value):
+        config = mw.addonManager.getConfig(__name__)
         config["good"]['enable'] = True if Qt.CheckState(value) == Qt.CheckState.Checked else False
         mw.addonManager.writeConfig(__name__,config)
+
     def on_checkbox_changed_easy(self, value):
+        config = mw.addonManager.getConfig(__name__)
         config["easy"]['enable'] = True if Qt.CheckState(value) == Qt.CheckState.Checked else False
         mw.addonManager.writeConfig(__name__,config)
+
     def on_checkbox_changed_grad(self, value):
+        config = mw.addonManager.getConfig(__name__)
         config["graduate"]['enable'] = True if Qt.CheckState(value) == Qt.CheckState.Checked else False
         mw.addonManager.writeConfig(__name__,config)
+
     def spin_grad_wait(self):
+        config = mw.addonManager.getConfig(__name__)
         config["graduate"]['wait_ease'] = self.form.spinGradWaitEasy.value()
         mw.addonManager.writeConfig(__name__,config)
+
     def on_checkbox_changed_finish(self, value):
+        config = mw.addonManager.getConfig(__name__)
         config["finish deck"]['enable'] = True if Qt.CheckState(value) == Qt.CheckState.Checked else False
         mw.addonManager.writeConfig(__name__,config)
 
     def on_checkbox_changed_correct(self, value):
+        config = mw.addonManager.getConfig(__name__)
         config["correct"]['enable'] = True if Qt.CheckState(value) == Qt.CheckState.Checked else False
         mw.addonManager.writeConfig(__name__,config)
+
     def on_checkbox_changed_error(self, value):
+        config = mw.addonManager.getConfig(__name__)
         config["error"]['enable'] = True if Qt.CheckState(value) == Qt.CheckState.Checked else False
         mw.addonManager.writeConfig(__name__,config)
 
     def on_checkbox_changed_suspended(self, value):
+        config = mw.addonManager.getConfig(__name__)
         config["suspended"]['enable'] = True if Qt.CheckState(value) == Qt.CheckState.Checked else False
         mw.addonManager.writeConfig(__name__,config)
+
     def on_checkbox_changed_buried_usr(self, value):
+        config = mw.addonManager.getConfig(__name__)
         config["user buried"]['enable'] = True if Qt.CheckState(value) == Qt.CheckState.Checked else False
         mw.addonManager.writeConfig(__name__,config)
+
     def on_checkbox_changed_buried_sch(self, value):
+        config = mw.addonManager.getConfig(__name__)
         config["sched buried"]['enable'] = True if Qt.CheckState(value) == Qt.CheckState.Checked else False
         mw.addonManager.writeConfig(__name__,config)
 
     def on_checkbox_changed_delay_q(self, value):
+        config = mw.addonManager.getConfig(__name__)
         config["delay question"]['enable'] = True if Qt.CheckState(value) == Qt.CheckState.Checked else False
         mw.addonManager.writeConfig(__name__,config)
+
     def spin_delay_q(self):
+        config = mw.addonManager.getConfig(__name__)
         config["delay question"]['time'] = self.form.spinDelayQ.value()
         mw.addonManager.writeConfig(__name__,config)
+
     def on_checkbox_changed_delay_a(self, value):
+        config = mw.addonManager.getConfig(__name__)
         config["delay answer"]['enable'] = True if Qt.CheckState(value) == Qt.CheckState.Checked else False
         mw.addonManager.writeConfig(__name__,config)
+
     def spin_delay_a(self):
+        config = mw.addonManager.getConfig(__name__)
         config["delay answer"]['time'] = self.form.spinDelayA.value()
         mw.addonManager.writeConfig(__name__,config)
 
     def on_checkbox_changed_fadein_q(self, value):
+        config = mw.addonManager.getConfig(__name__)
         config["fadein question"]['enable'] = True if Qt.CheckState(value) == Qt.CheckState.Checked else False
         mw.addonManager.writeConfig(__name__,config)
+
     def spin_fadein_q(self):
+        config = mw.addonManager.getConfig(__name__)
         config["fadein question"]['time'] = round(self.form.spinFadeInQ.value(), 1)
         mw.addonManager.writeConfig(__name__,config)
+
     def on_checkbox_changed_fadein_a(self, value):
+        config = mw.addonManager.getConfig(__name__)
         config["fadein answer"]['enable'] = True if Qt.CheckState(value) == Qt.CheckState.Checked else False
         mw.addonManager.writeConfig(__name__,config)
+
     def spin_fadein_a(self):
+        config = mw.addonManager.getConfig(__name__)
         config["fadein answer"]['time'] = round(self.form.spinFadeInA.value(), 1)
         mw.addonManager.writeConfig(__name__,config)
 
     def on_checkbox_changed_AM(self, value):
+        config = mw.addonManager.getConfig(__name__)
         isEnabled = True if Qt.CheckState(value) == Qt.CheckState.Checked else False
         config["ambient menu"]['enable'] = isEnabled
         mw.addonManager.writeConfig(__name__,config)
@@ -803,6 +903,7 @@ class ConfigDialog(QDialog):
                 menuLooper.pause()
 
     def on_checkbox_changed_AR(self, value):
+        config = mw.addonManager.getConfig(__name__)
         isEnabled = True if Qt.CheckState(value) == Qt.CheckState.Checked else False
         config["ambient review"]['enable'] = isEnabled
         mw.addonManager.writeConfig(__name__,config)
@@ -813,10 +914,12 @@ class ConfigDialog(QDialog):
                 reviewLooper.pause()
 
     def on_checkbox_changed_ARC(self, value):
+        config = mw.addonManager.getConfig(__name__)
         config["ambient review"]['continue'] = True if Qt.CheckState(value) == Qt.CheckState.Checked else False
         mw.addonManager.writeConfig(__name__,config)
 
     def index_change_mode(self,i:int, name:str):
+        config = mw.addonManager.getConfig(__name__)
         if name == "ambient menu":
             config["ambient menu"]['mode'] = self.form.comboBoxAmbientMMode.itemText(i)
             mw.addonManager.writeConfig(__name__,config)
@@ -825,63 +928,76 @@ class ConfigDialog(QDialog):
             mw.addonManager.writeConfig(__name__,config)
 
     def adjAMVolume(self,val:int):
+        config = mw.addonManager.getConfig(__name__)
         menuLooper.setVolume(val)
         self.form.labelAmbientMVol.setText(f"{val}%")
         config["ambient menu"]['volume'] = val
         mw.addonManager.writeConfig(__name__,config)
 
     def adjARVolume(self,val:int):
+        config = mw.addonManager.getConfig(__name__)
         reviewLooper.setVolume(val)
         self.form.labelAmbientRVol.setText(f"{val}%")
         config["ambient review"]['volume'] = val
         mw.addonManager.writeConfig(__name__,config)
 
     def spin_vol_again(self):
+        config = mw.addonManager.getConfig(__name__)
         config["again"]['volume'] = self.form.spinBoxVolAgain.value()
         mw.addonManager.writeConfig(__name__,config)
 
     def spin_vol_hard(self):
+        config = mw.addonManager.getConfig(__name__)
         config["hard"]['volume'] = self.form.spinBoxVolHard.value()
         mw.addonManager.writeConfig(__name__,config)
 
     def spin_vol_good(self):
+        config = mw.addonManager.getConfig(__name__)
         config["good"]['volume'] = self.form.spinBoxVolGood.value()
         mw.addonManager.writeConfig(__name__,config)
 
     def spin_vol_easy(self):
+        config = mw.addonManager.getConfig(__name__)
         config["easy"]['volume'] = self.form.spinBoxVolEasy.value()
         mw.addonManager.writeConfig(__name__,config)
 
     def spin_vol_graduate(self):
+        config = mw.addonManager.getConfig(__name__)
         config["graduate"]['volume'] = self.form.spinBoxVolGraduate.value()
         mw.addonManager.writeConfig(__name__,config)
 
     def spin_vol_finish(self):
+        config = mw.addonManager.getConfig(__name__)
         config["finish deck"]['volume'] = self.form.spinBoxVolFinish.value()
         mw.addonManager.writeConfig(__name__,config)
 
 
     def spin_vol_correct(self):
+        config = mw.addonManager.getConfig(__name__)
         config["correct"]['volume'] = self.form.spinBoxVolCorret.value()
         mw.addonManager.writeConfig(__name__,config)
 
 
     def spin_vol_error(self):
+        config = mw.addonManager.getConfig(__name__)
         config["error"]['volume'] = self.form.spinBoxVolError.value()
         mw.addonManager.writeConfig(__name__,config)
 
 
     def spin_vol_suspended(self):
+        config = mw.addonManager.getConfig(__name__)
         config["suspended"]['volume'] = self.form.spinBoxVolSuspended.value()
         mw.addonManager.writeConfig(__name__,config)
 
 
     def spin_vol_buried_usr(self):
+        config = mw.addonManager.getConfig(__name__)
         config["user buried"]['volume'] = self.form.spinBoxVolBuriedUsr.value()
         mw.addonManager.writeConfig(__name__,config)
 
 
     def spin_vol_buried_sch(self):
+        config = mw.addonManager.getConfig(__name__)
         config["sched buried"]['volume'] = self.form.spinBoxVolBuriedSch.value()
         mw.addonManager.writeConfig(__name__,config)
 

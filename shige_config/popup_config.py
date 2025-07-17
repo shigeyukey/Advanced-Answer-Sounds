@@ -16,8 +16,8 @@ from .patrons_list import PATRONS_LIST #🟢
 
 CHANGE_LOG_DEFAULT = ""
 CHANGE_LOG = "is_change_log"
-CHANGE_LOG_DAY = "2025-02-15d" #🟢
-
+# CHANGE_LOG_DAY = "2025-02-15d" #🟢
+CHANGE_LOG_DAY = "2025-07-17b" #🟢
 
 POKEBALL_PATH = r"popup_icon.png"
 
@@ -28,9 +28,9 @@ REPORT_URL = "https://shigeyukey.github.io/shige-addons-wiki/advanced-answer-sou
 
 # popup-size
 # mini-pupup
-SIZE_MINI_WIDTH = 500
-SIZE_MINI_HEIGHT = 415
-# Width: 500, Height: 415
+SIZE_MINI_WIDTH = 647
+SIZE_MINI_HEIGHT = 492
+# Width: 647, Height: 492
 
 # Large-popup
 SIZE_BIG_WIDTH = 700
@@ -55,16 +55,20 @@ POPUP_PNG = r"popup_shige.png"
 
 
 NEW_FEATURE = """
-2025-02-15
-[1] Enhanced
-    - Added decimal support for fade-in and fade-out.
-    - Fixed a bug that sometimes occurs an error.
+2025-07-17
+[ Bug Fixes ]
+- Fixed a bug that caused add-ons to break in Anki 25.04+. (Win, Mac)
+- Added license information.
+- Enhanced to make options not require restarting.
 
-2025-01-25
-[1] First Release
-    - Latest Mac support added (arm64)
-    - Linux support added (Python3.9-3.13)
-    - New button for the user folder added.
+[ Notes ]
+1. This add-on is designed to play various sounds and background music,
+    so when you install it sounds and BGM will auto play. If you don't
+    like the sound, BGM, or volume, you can customize them in the options.
+    (Menu -> Tools -> Advanced Answer Sound)
+2. If the sound does not auto play there may be a bug, if so please contact me.
+3. Mac and Linux should work but I have not confirmed this yet,
+    if it does not work please contact me.
 """
 
 
@@ -77,14 +81,10 @@ able to develop this. Thank you very much!🙏"""
 
 CHANGE_LOG_TEXT = """\
 [ Change log : {addon} ]
-
-Shigeyuki :
-Hello, thank you for using this add-on!😆
-{update_text}
+Shigeyuki: Hi thanks for using this add-on!ඞ {update_text}
 {new_feature}
-If you like this add-on, please support
-my volunteer development on Patreon. Thank you!
-
+---
+I'm looking for supporters for my add-ons development, because I like Anki! So far I fixed and customized 60+ discontinued add-ons and created 30+ new add-ons. If you support my volunteer development you will get 14 add-ons for patrons only and 15 game themes included in AnkiArcade. If you have any ideas or requests feel free to send them to me, thanks! :D
 
 [ Old change log ]
 {old_change_log}
@@ -223,7 +223,7 @@ class CustomDialog(QDialog):
         button_layout = QHBoxLayout()
         button_layout.addStretch()
 
-        self.yes_button = QPushButton("💖Patreon")
+        self.yes_button = QPushButton("💖Become a Patron")
         self.yes_button.clicked.connect(lambda: openLink(PATREON_URL))
         self.yes_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         mini_button(self.yes_button)

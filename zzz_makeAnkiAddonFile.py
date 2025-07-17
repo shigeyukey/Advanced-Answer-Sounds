@@ -1,10 +1,17 @@
+# Copyright (C) Shigeyuki <http://patreon.com/Shigeyuki>
+# License: GNU AGPL version 3 or later <http://www.gnu.org/licenses/agpl.html>｣
+
 import os
 import zipfile
 from datetime import datetime
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from shige_config.change_log import OLD_CHANGE_LOG
+    from shige_config.patrons_list import PATRONS_LIST
+    from shige_config.popup_config import NEW_FEATURE
 
 ADDON_NAME ="Advanced Answer sound"
-
 
 def create_ankiaddon():
     current_dir = os.getcwd()
@@ -13,7 +20,7 @@ def create_ankiaddon():
 
     zip_name = f"addon_{today}.zip"
 
-    exclude_dirs = ["__pycache__", ".vscode", ".git",]
+    exclude_dirs = ["__pycache__", ".vscode", ".git", "unzip_wheel"]
     exclude_full_dirs = []
     exclude_full_dirs = [os.path.join(current_dir, "simpleaudio_patched.libs")]
 
